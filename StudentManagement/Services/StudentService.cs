@@ -3,6 +3,8 @@ using StudentManagement.Model;
 using StudentManagement.Respository.IRepository;
 using StudentManagement.Services.IServices;
 using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace StudentManagement.Services
@@ -22,7 +24,8 @@ namespace StudentManagement.Services
             {
                 Name = dto.Name,
                 Age = dto.Age,
-                Email = dto.Email
+                Email = dto.Email,
+                Password = HashPassword(dto.Password) // hash the password before storing
             };
 
             await _repo.AddAsync(student);
@@ -51,9 +54,18 @@ namespace StudentManagement.Services
                 student.Name = dto.Name;
                 student.Age = dto.Age;
                 student.Email = dto.Email;
+                student.Password = HashPassword(dto.Password); // update hashed password
 
                 await _repo.UpdateAsync(student);
             }
+        }
+
+        // Optional - hash password using SHA256
+        private string HashPassword(string password)
+        {
+            using var sha256 = SHA256.Create();
+            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            return Convert.ToBase64String(bytes);
         }
     }
 }
