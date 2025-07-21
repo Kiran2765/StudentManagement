@@ -25,7 +25,7 @@ namespace StudentManagement.Services
                 Name = dto.Name,
                 Age = dto.Age,
                 Email = dto.Email,
-                Password = HashPassword(dto.Password) // hash the password before storing
+                Password = dto.Password
             };
 
             await _repo.AddAsync(student);
@@ -54,18 +54,12 @@ namespace StudentManagement.Services
                 student.Name = dto.Name;
                 student.Age = dto.Age;
                 student.Email = dto.Email;
-                student.Password = HashPassword(dto.Password); // update hashed password
+                student.Password = dto.Password;
 
                 await _repo.UpdateAsync(student);
             }
         }
 
-        // Optional - hash password using SHA256
-        private string HashPassword(string password)
-        {
-            using var sha256 = SHA256.Create();
-            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(bytes);
-        }
+       
     }
 }
