@@ -9,6 +9,7 @@ namespace StudentManagement.Respository.IRepository
         Task AddAsync(Student student);
         Task UpdateAsync(Student student);
         Task DeleteAsync(int id);
-    }
+        Task<Student> GetByEmailAsync(string email); // ✅ NEW    }
 
+    }
 }

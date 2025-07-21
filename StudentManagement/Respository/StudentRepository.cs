@@ -45,5 +45,10 @@ namespace StudentManagement.Respository
                 await _context.SaveChangesAsync();
             }
         }
+
+        public async Task<Student> GetByEmailAsync(string email)
+        {
+            return await _context.Students.FirstOrDefaultAsync(s => s.Email == email);
+        }
     }
 }
