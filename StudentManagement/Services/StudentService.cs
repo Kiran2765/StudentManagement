@@ -3,8 +3,6 @@ using StudentManagement.Model;
 using StudentManagement.Respository.IRepository;
 using StudentManagement.Services.IServices;
 using System.Collections.Generic;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace StudentManagement.Services
@@ -25,7 +23,7 @@ namespace StudentManagement.Services
                 Name = dto.Name,
                 Age = dto.Age,
                 Email = dto.Email,
-                Password = dto.Password
+                Password = BCrypt.Net.BCrypt.HashPassword(dto.Password) // ✅ Hash here
             };
 
             await _repo.AddAsync(student);
@@ -54,12 +52,15 @@ namespace StudentManagement.Services
                 student.Name = dto.Name;
                 student.Age = dto.Age;
                 student.Email = dto.Email;
-                student.Password = dto.Password;
+
+                // ✅ Hash only if password is provided (optional logic)
+                if (!string.IsNullOrWhiteSpace(dto.Password))
+                {
+                    student.Password = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+                }
 
                 await _repo.UpdateAsync(student);
             }
         }
-
-       
     }
 }
