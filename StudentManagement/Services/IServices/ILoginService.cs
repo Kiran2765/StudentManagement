@@ -5,6 +5,7 @@ namespace StudentManagement.Services.IServices
 {
     public interface ILoginService
     {
-        Task<Student> LoginAsync(LoginDto dto);
+        Task<LoginResponseDto> LoginAsync(LoginDto dto);
+
     }
 }

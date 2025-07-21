@@ -19,18 +19,12 @@ namespace StudentManagement.Controllers
         [HttpPost]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            var student = await _loginService.LoginAsync(dto);
-            if (student != null)
-            {
-                return Ok(new
-                {
-                    Message = "Login successful",
-                    student.Id,
-                    student.Name,
-                    student.Email
-                });
-            }
-            return Unauthorized("Invalid email or password.");
+            var response = await _loginService.LoginAsync(dto);
+            if (response == null)
+                return Unauthorized("Invalid credentials");
+
+            return Ok(response);
         }
+
     }
 }
