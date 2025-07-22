@@ -25,11 +25,21 @@ namespace StudentManagement.Services
 
         public async Task<LoginResponseDto> LoginAsync(LoginDto dto)
         {
-            var student = await _studentRepository.GetByEmailAsync(dto.Email);
-
-            if (student != null && student.Password == dto.Password) // plain text check
+            try
             {
-                // Generate JWT token
+                // 1. Get student by email
+                var student = await _studentRepository.GetByEmailAsync(dto.Email);
+
+                if (student == null)
+                    throw new Exception("Invalid email or password.");
+
+                // 2. Verify password using BCrypt
+                bool isPasswordValid = BCrypt.Net.BCrypt.Verify(dto.Password, student.Password);
+
+                if (!isPasswordValid)
+                    throw new Exception("Invalid email or password.");
+
+                // 3. Generate JWT token
                 var key = Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]);
 
                 var tokenDescriptor = new SecurityTokenDescriptor
@@ -43,7 +53,10 @@ namespace StudentManagement.Services
                     Expires = DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["JwtSettings:DurationInMinutes"])),
                     Issuer = _configuration["JwtSettings:Issuer"],
                     Audience = _configuration["JwtSettings:Audience"],
-                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                    SigningCredentials = new SigningCredentials(
+                        new SymmetricSecurityKey(key),
+                        SecurityAlgorithms.HmacSha256Signature
+                    )
                 };
 
                 var tokenHandler = new JwtSecurityTokenHandler();
@@ -56,8 +69,10 @@ namespace StudentManagement.Services
                     Name = student.Name
                 };
             }
-
-            return null;
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred during login: " + ex.Message);
+            }
         }
     }
 }
