@@ -17,14 +17,24 @@ namespace StudentManagement.Controllers
         }
 
         [HttpPost]
+        [ProducesResponseType(typeof(string), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            var response = await _loginService.LoginAsync(dto);
-            if (response == null)
-                return Unauthorized("Invalid credentials");
+            if (!ModelState.IsValid)
+                return BadRequest("Invalid login request");
 
-            return Ok(response);
+            var token = await _loginService.LoginAsync(dto);
+            if (token == null)
+                return Unauthorized("❌ Invalid email or password");
+
+            // Return token (or optionally set a secure cookie if needed)
+            return Ok(new
+            {
+                Token = token,
+                Message = "✅ Login successful"
+            });
         }
-
     }
 }

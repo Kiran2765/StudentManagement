@@ -25,54 +25,55 @@ namespace StudentManagement.Services
 
         public async Task<LoginResponseDto> LoginAsync(LoginDto dto)
         {
-            try
+            // 1. Retrieve student by email
+            var student = await _studentRepository.GetByEmailAsync(dto.Email);
+            if (student == null)
+                return null;
+
+            // 2. Verify hashed password
+            bool isPasswordValid = BCrypt.Net.BCrypt.Verify(dto.Password, student.Password);
+            if (!isPasswordValid)
+                return null;
+
+            // 3. Load JWT settings
+            string jwtKey = _configuration["JwtSettings:Key"];
+            string jwtIssuer = _configuration["JwtSettings:Issuer"];
+            string jwtAudience = _configuration["JwtSettings:Audience"];
+            double jwtDuration = Convert.ToDouble(_configuration["JwtSettings:DurationInMinutes"]);
+
+            // 4. Create security key
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            // 5. Prepare claims
+            var claims = new[]
             {
-                // 1. Get student by email
-                var student = await _studentRepository.GetByEmailAsync(dto.Email);
+                new Claim(ClaimTypes.NameIdentifier, student.Id.ToString()),
+                new Claim(ClaimTypes.Email, student.Email),
+                new Claim(ClaimTypes.Name, student.Name)
+            };
 
-                if (student == null)
-                    throw new Exception("Invalid email or password.");
-
-                // 2. Verify password using BCrypt
-                bool isPasswordValid = BCrypt.Net.BCrypt.Verify(dto.Password, student.Password);
-
-                if (!isPasswordValid)
-                    throw new Exception("Invalid email or password.");
-
-                // 3. Generate JWT token
-                var key = Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]);
-
-                var tokenDescriptor = new SecurityTokenDescriptor
-                {
-                    Subject = new ClaimsIdentity(new[]
-                    {
-                        new Claim(ClaimTypes.NameIdentifier, student.Id.ToString()),
-                        new Claim(ClaimTypes.Email, student.Email),
-                        new Claim(ClaimTypes.Name, student.Name)
-                    }),
-                    Expires = DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["JwtSettings:DurationInMinutes"])),
-                    Issuer = _configuration["JwtSettings:Issuer"],
-                    Audience = _configuration["JwtSettings:Audience"],
-                    SigningCredentials = new SigningCredentials(
-                        new SymmetricSecurityKey(key),
-                        SecurityAlgorithms.HmacSha256Signature
-                    )
-                };
-
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var token = tokenHandler.CreateToken(tokenDescriptor);
-
-                return new LoginResponseDto
-                {
-                    Token = tokenHandler.WriteToken(token),
-                    Email = student.Email,
-                    Name = student.Name
-                };
-            }
-            catch (Exception ex)
+            // 6. Create token descriptor
+            var tokenDescriptor = new SecurityTokenDescriptor
             {
-                throw new Exception("An error occurred during login: " + ex.Message);
-            }
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.UtcNow.AddMinutes(jwtDuration),
+                Issuer = jwtIssuer,
+                Audience = jwtAudience,
+                SigningCredentials = creds
+            };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            string tokenString = tokenHandler.WriteToken(token);
+
+            // 7. Return token and info
+            return new LoginResponseDto
+            {
+                Token = tokenString,
+                Email = student.Email,
+                Name = student.Name
+            };
         }
     }
 }

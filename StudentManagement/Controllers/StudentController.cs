@@ -1,113 +1,75 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using StudentManagement.DTO;
 using StudentManagement.Services.IServices;
-using System;
 using System.Threading.Tasks;
 
-[ApiController]
-[Route("api/[controller]")]
-public class StudentController : ControllerBase
+namespace StudentManagement.Controllers
 {
-    private readonly IStudentService _service;
-
-    public StudentController(IStudentService service)
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize] // 🔒 Protects all endpoints
+    public class StudentController : ControllerBase
     {
-        _service = service;
-    }
+        private readonly IStudentService _service;
 
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
-    {
-        try
+        public StudentController(IStudentService service)
+        {
+            _service = service;
+        }
+
+        [HttpGet]
+        [ProducesResponseType(200)]
+        public async Task<IActionResult> GetAll()
         {
             var students = await _service.GetAllStudentsAsync();
             return Ok(students);
         }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error retrieving students: {ex.Message}");
-        }
-    }
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
-    {
-        try
+        [HttpGet("{id}")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetById(int id)
         {
             var student = await _service.GetStudentByIdAsync(id);
+            if (student == null)
+                return NotFound($"Student with ID {id} not found.");
+
             return Ok(student);
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error retrieving student: {ex.Message}");
-        }
-    }
 
-    [HttpPost]
-    public async Task<IActionResult> Create([FromBody] StudentDto dto)
-    {
-        try
+        [HttpPost]
+        [ProducesResponseType(201)]
+        public async Task<IActionResult> Create([FromBody] StudentDto dto)
         {
-            if (dto == null)
-                return BadRequest("Student data is required.");
-
             await _service.AddStudentAsync(dto);
-            return Ok("Student created.");
+            return StatusCode(201, "✅ Student created successfully.");
         }
-        catch (ArgumentNullException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error creating student: {ex.Message}");
-        }
-    }
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, [FromBody] StudentDto dto)
-    {
-        try
+        [HttpPut("{id}")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> Update(int id, [FromBody] StudentDto dto)
         {
-            if (dto == null)
-                return BadRequest("Student data is required.");
+            var existing = await _service.GetStudentByIdAsync(id);
+            if (existing == null)
+                return NotFound($"Student with ID {id} not found.");
 
             await _service.UpdateStudentAsync(id, dto);
-            return Ok("Student updated.");
+            return Ok("✅ Student updated successfully.");
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (ArgumentNullException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error updating student: {ex.Message}");
-        }
-    }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
-    {
-        try
+        [HttpDelete("{id}")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> Delete(int id)
         {
+            var existing = await _service.GetStudentByIdAsync(id);
+            if (existing == null)
+                return NotFound($"Student with ID {id} not found.");
+
             await _service.DeleteStudentAsync(id);
-            return Ok("Student deleted.");
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error deleting student: {ex.Message}");
+            return Ok("🗑️ Student deleted successfully.");
         }
     }
 }
