@@ -30,6 +30,10 @@ namespace StudentManagement.Services
 
         public async Task<LoginResponseDto> LoginAsync(LoginDto dto)
         {
+            if (string.IsNullOrEmpty(dto.Role))
+                return null;
+
+            string role = dto.Role.Trim().ToLower();
             string jwtKey = _configuration["JwtSettings:Key"];
             string jwtIssuer = _configuration["JwtSettings:Issuer"];
             string jwtAudience = _configuration["JwtSettings:Audience"];
@@ -37,8 +41,9 @@ namespace StudentManagement.Services
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var tokenHandler = new JwtSecurityTokenHandler();
 
-            if (dto.Role.ToLower() == "student")
+            if (role == "student")
             {
                 var student = await _studentRepository.GetByEmailAsync(dto.Email);
                 if (student == null || !BCrypt.Net.BCrypt.Verify(dto.Password, student.Password))
@@ -61,7 +66,6 @@ namespace StudentManagement.Services
                     SigningCredentials = creds
                 };
 
-                var tokenHandler = new JwtSecurityTokenHandler();
                 var token = tokenHandler.CreateToken(tokenDescriptor);
                 string tokenString = tokenHandler.WriteToken(token);
 
@@ -69,10 +73,11 @@ namespace StudentManagement.Services
                 {
                     Token = tokenString,
                     Email = student.Email,
-                    Name = student.Name
+                    Name = student.Name,
+                    Role = "Student"
                 };
             }
-            else if (dto.Role.ToLower() == "principal")
+            else if (role == "principal")
             {
                 var principal = await _principalRepository.GetByEmailAsync(dto.Email);
                 if (principal == null || !BCrypt.Net.BCrypt.Verify(dto.Password, principal.PasswordHash))
@@ -95,7 +100,6 @@ namespace StudentManagement.Services
                     SigningCredentials = creds
                 };
 
-                var tokenHandler = new JwtSecurityTokenHandler();
                 var token = tokenHandler.CreateToken(tokenDescriptor);
                 string tokenString = tokenHandler.WriteToken(token);
 
@@ -103,7 +107,8 @@ namespace StudentManagement.Services
                 {
                     Token = tokenString,
                     Email = principal.Email,
-                    Name = principal.Name
+                    Name = principal.Name,
+                    Role = "Principal"
                 };
             }
 

@@ -8,7 +8,6 @@ namespace StudentManagement.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize] // 🔒 Protects all endpoints
     public class StudentController : ControllerBase
     {
         private readonly IStudentService _service;
@@ -18,6 +17,8 @@ namespace StudentManagement.Controllers
             _service = service;
         }
 
+        // ✅ Accessible by both Principal and Student
+        [Authorize(Roles = "Principal,Student")]
         [HttpGet]
         [ProducesResponseType(200)]
         public async Task<IActionResult> GetAll()
@@ -26,6 +27,8 @@ namespace StudentManagement.Controllers
             return Ok(students);
         }
 
+        // ✅ Accessible by Principal only
+        [Authorize(Roles = "Principal")]
         [HttpGet("{id}")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
@@ -38,6 +41,8 @@ namespace StudentManagement.Controllers
             return Ok(student);
         }
 
+        // ✅ Create - Principal only
+        [Authorize(Roles = "Principal")]
         [HttpPost]
         [ProducesResponseType(201)]
         public async Task<IActionResult> Create([FromBody] StudentDto dto)
@@ -46,6 +51,8 @@ namespace StudentManagement.Controllers
             return StatusCode(201, "✅ Student created successfully.");
         }
 
+        // ✅ Update - Principal only
+        [Authorize(Roles = "Principal")]
         [HttpPut("{id}")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
@@ -59,6 +66,8 @@ namespace StudentManagement.Controllers
             return Ok("✅ Student updated successfully.");
         }
 
+        // ✅ Delete - Principal only
+        [Authorize(Roles = "Principal")]
         [HttpDelete("{id}")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]

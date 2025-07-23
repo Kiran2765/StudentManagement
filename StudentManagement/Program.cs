@@ -11,11 +11,11 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 🔐 Load JWT settings
+// 🔐 JWT settings
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["Key"];
 
-// 🔐 Configure JWT Authentication
+// 🔐 JWT Authentication Configuration
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -31,21 +31,20 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-
         ValidIssuer = jwtSettings["Issuer"],
         ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+        RoleClaimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role" // ensure role claim works with [Authorize(Roles = "...")]
     };
 });
 
 builder.Services.AddAuthorization();
 
-// 📦 Add Swagger & configure JWT support
+// 📦 Swagger + JWT Support
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Student Management API", Version = "v1" });
 
-    // Enable authorization using Swagger (JWT)
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -53,7 +52,7 @@ builder.Services.AddSwaggerGen(c =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Enter 'Bearer' followed by your token (e.g., Bearer eyJhbGci...)"
+        Description = "Enter 'Bearer {your JWT token}'"
     });
 
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -72,23 +71,22 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// 🛠 Dependency Injection
+// 🧱 DB and Services Injection
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 builder.Services.AddScoped<IStudentService, StudentService>();
-builder.Services.AddScoped<ILoginService, LoginService>();
 builder.Services.AddScoped<IPrincipalRepository, PrincipalRepository>();
 builder.Services.AddScoped<IPrincipalService, PrincipalService>();
-
+builder.Services.AddScoped<ILoginService, LoginService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
 
-// 🚀 Middleware pipeline
+// 🧪 Swagger Middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -97,7 +95,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// ✅ Enable Authentication & Authorization
+// 🔐 Order matters: Auth before MapControllers
 app.UseAuthentication();
 app.UseAuthorization();
 
